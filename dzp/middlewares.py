@@ -4,8 +4,10 @@
 #
 # See documentation in:
 # https://doc.scrapy.org/en/latest/topics/spider-middleware.html
-
+import time
 from scrapy import signals
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 
 
 class DzSpiderMiddleware(object):
@@ -56,7 +58,46 @@ class DzSpiderMiddleware(object):
         spider.logger.info('Spider opened: %s' % spider.name)
 
 
-class DzDownloaderMiddleware(object):
+# 登录的中间件
+class LoginMiddleware(object):
+    def __init__(self):
+        self.options = Options()
+        self.options.add_argument('--headless')
+        self.driver = webdriver.Chrome(chrome_options=self.options)
+
+    def process_request(self, request, spider):
+        # 判断当前的请求url是否为login_url
+        if request.url.startswith(spider.login_url):
+            spider.logger.info('--开始模拟登录---')
+            self.driver.get(request.url)  # 打开登录页面
+
+            # 查找iframe, 并切换到frame中
+            # 查找iframe中切换账号登录图标，并点击
+            # 再点击账号和密码登录
+            # 点击登录， 注意：登录的间隔时不要太短，不然会出验证码
+            iframe = self.driver.find_element_by_xpath('//iframe')
+            self.driver.switch_to.frame(iframe)
+            time.sleep(1)
+            qrcode = self.driver.find_element_by_xpath('//div[@class="icon-qrcode"]')
+            qrcode.click()
+            time.sleep(1)
+
+            self.driver.find_element_by_xpath('//a[@id="tab-account"]').click()
+            self.driver.find_element_by_xpath('//*[@id="account-textbox"]').send_keys()
+            self.driver.find_element_by_xpath('//*[@id="password-textbox"]').send_keys()
+            self.driver.find_element_by_xpath('//*[@id="login-button-account"]').click()
+
+            time.sleep(2)
+
+            user_info = self.driver.find_element_by_xpath('//*[@class="userinfo-container"]')
+            if user_info:
+                print('--登录成功--')
+
+        else:
+            spider.logger.info('---非登录请求----')
+
+
+class DzpDownloaderMiddleware(object):
     # Not all methods need to be defined. If a method is not defined,
     # scrapy acts as if the downloader middleware does not modify the
     # passed objects.
