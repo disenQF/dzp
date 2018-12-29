@@ -5,7 +5,7 @@
 # See documentation in:
 # https://doc.scrapy.org/en/latest/topics/spider-middleware.html
 import time
-from scrapy import signals
+from scrapy import signals, Request
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
@@ -79,6 +79,7 @@ class LoginMiddleware(object):
             self.driver.switch_to.frame(iframe)
             time.sleep(1)
             qrcode = self.driver.find_element_by_xpath('//div[@class="icon-qrcode"]')
+            print('---qrcode-->', qrcode.tag_name)
             qrcode.click()
             time.sleep(1)
 
@@ -98,16 +99,25 @@ class LoginMiddleware(object):
                 """
                 {'_lxsdk_s': '167f7d9e6c5-327-beb-05d%7C%7C41',
                  '_hc.v': '407eb6f6-3ec1-2cd5-adff-6613a81c148e.1546051513',
-                  '_lxsdk': '167f7d9e6c332-04ee97d7507144-10326653-75300-167f7d9e6c4c8', 
-                  '_lxsdk_cuid': '167f7d9e6c332-04ee97d7507144-10326653-75300-167f7d9e6c4c8',
-                   's_ViewType': '10',
-                    'lgtoken': '09af88558-d1f5-4f4b-beb2-714f12c10188'}
+                 '_lxsdk': '167f7d9e6c332-04ee97d7507144-10326653-75300-167f7d9e6c4c8', 
+                 '_lxsdk_cuid': '167f7d9e6c332-04ee97d7507144-10326653-75300-167f7d9e6c4c8',
+                 's_ViewType': '10',
+                 'lgtoken': '09af88558-d1f5-4f4b-beb2-714f12c10188'}
 
                 """
-                cookie = {item["name"]: item["value"] for item in self.driver.get_cookies()}
+                spider.cookies = {item["name"]: item["value"]
+                          for item in self.driver.get_cookies()}
+
+                # 查看zzw商家的所有评伦
+                return Request('http://www.dianping.com/shop/6232395/review_all/',
+                              callback=request.callback,
+                              cookies=spider.cookies)
 
         else:
             spider.logger.info('---非登录请求----')
+            return Request(request.url,
+                          callback=request.callback,
+                          cookies=spider.cookies)
 
 
 class DzpDownloaderMiddleware(object):
