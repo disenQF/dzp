@@ -9,6 +9,10 @@ from scrapy import signals, Request
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
+from dzp import cookie
+from dzp.ip_proxy import proxy
+from dzp.ip_proxy import user_agents
+
 
 class DzSpiderMiddleware(object):
     # Not all methods need to be defined. If a method is not defined,
@@ -106,19 +110,38 @@ class LoginMiddleware(object):
 
                 """
                 spider.cookies = {item["name"]: item["value"]
-                          for item in self.driver.get_cookies()}
+                                  for item in self.driver.get_cookies()}
 
                 # 查看zzw商家的所有评伦
                 return Request('http://www.dianping.com/shop/6232395/review_all/',
-                              callback=request.callback,
-                              cookies=spider.cookies)
+                               callback=request.callback,
+                               cookies=spider.cookies)
 
         else:
             spider.logger.info('---非登录请求----')
             return Request(request.url,
-                          callback=request.callback,
-                          cookies=spider.cookies)
+                           callback=request.callback,
+                           cookies=spider.cookies)
 
+# 使用现有的cookies信息
+class CookieMiddleware(object):
+
+    def process_request(self, request, spider):
+        request.cookies = cookie.get_cookies()
+        if request.url.startswith('https://'):
+            proxy_ = proxy.random_https_proxy()
+        else:
+            proxy_ = proxy.random_http_proxy()
+        request.meta['proxy'] = proxy_
+        request.headers['User-Agent'] = user_agents.random_ua()
+
+
+    def process_response(self, request, response,spider):
+        print('---响应---', response.status, request.url)
+        if response.status == 403:
+            request.cookies = cookie.get_cookies()
+            return request
+        return response
 
 class DzpDownloaderMiddleware(object):
     # Not all methods need to be defined. If a method is not defined,
