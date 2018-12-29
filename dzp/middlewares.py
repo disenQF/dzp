@@ -62,7 +62,7 @@ class DzSpiderMiddleware(object):
 class LoginMiddleware(object):
     def __init__(self):
         self.options = Options()
-        self.options.add_argument('--headless')
+        # self.options.add_argument('--headless')
         self.driver = webdriver.Chrome(chrome_options=self.options)
 
     def process_request(self, request, spider):
@@ -83,15 +83,28 @@ class LoginMiddleware(object):
             time.sleep(1)
 
             self.driver.find_element_by_xpath('//a[@id="tab-account"]').click()
-            self.driver.find_element_by_xpath('//*[@id="account-textbox"]').send_keys()
-            self.driver.find_element_by_xpath('//*[@id="password-textbox"]').send_keys()
+            self.driver.find_element_by_xpath('//*[@id="account-textbox"]').send_keys('15035455735')
+            self.driver.find_element_by_xpath('//*[@id="password-textbox"]').send_keys('fan427329')
             self.driver.find_element_by_xpath('//*[@id="login-button-account"]').click()
 
             time.sleep(2)
 
+            self.driver.switch_to.default_content()
+
             user_info = self.driver.find_element_by_xpath('//*[@class="userinfo-container"]')
             if user_info:
                 print('--登录成功--')
+                # selenum_cookies => scrapy_cookie
+                """
+                {'_lxsdk_s': '167f7d9e6c5-327-beb-05d%7C%7C41',
+                 '_hc.v': '407eb6f6-3ec1-2cd5-adff-6613a81c148e.1546051513',
+                  '_lxsdk': '167f7d9e6c332-04ee97d7507144-10326653-75300-167f7d9e6c4c8', 
+                  '_lxsdk_cuid': '167f7d9e6c332-04ee97d7507144-10326653-75300-167f7d9e6c4c8',
+                   's_ViewType': '10',
+                    'lgtoken': '09af88558-d1f5-4f4b-beb2-714f12c10188'}
+
+                """
+                cookie = {item["name"]: item["value"] for item in self.driver.get_cookies()}
 
         else:
             spider.logger.info('---非登录请求----')
